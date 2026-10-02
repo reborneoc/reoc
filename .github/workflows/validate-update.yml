@@ -1,0 +1,23 @@
+name: Validate update metadata
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  validate-json:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse JSON files
+        shell: pwsh
+        run: |
+          Get-Content ./latest.example.json -Raw | ConvertFrom-Json | Out-Null
+          Get-Content ./schemas/update-manifest.schema.json -Raw | ConvertFrom-Json | Out-Null
+          if (Test-Path ./latest.json) {
+            $latest = Get-Content ./latest.json -Raw | ConvertFrom-Json
+            if (-not $latest.version -or -not $latest.url -or -not $latest.sha256) {
+              throw 'latest.json is incomplete'
+            }
+          }

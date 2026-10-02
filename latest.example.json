@@ -1,0 +1,8 @@
+{
+  "version": "1.10.0",
+  "url": "https://github.com/reborneoc/reoc/releases/download/v1.10.0/REOC_UPDATE_1.10.0.zip",
+  "sha256": "REPLACE_WITH_FINAL_ZIP_SHA256",
+  "size": 0,
+  "mandatory": false,
+  "notes": "Initial REOC auto-update release"
+}

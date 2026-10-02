@@ -1,0 +1,7 @@
+*.zip
+*.log
+*.tmp
+*.bak
+out/
+build/
+releases/
