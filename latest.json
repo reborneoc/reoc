@@ -1,8 +1,8 @@
 {
-  "version": "1.10.2",
-  "url": "https://github.com/reborneoc/reoc/releases/download/v1.10.2/REOC_UPDATE_1.10.2.zip",
-  "sha256": "100808A559EB2DF70AE50343132147303C4B01B5FA8F516B7710621E395443F2",
-  "size": 26820922,
+  "version": "1.10.3",
+  "url": "https://github.com/reborneoc/reoc/releases/download/v1.10.3/REOC_UPDATE_1.10.3.zip",
+  "sha256": "8E637ABBEFB018F3A17DD7DE049D66554AD92967C69942A32666525355DFAA24",
+  "size": 26821111,
   "mandatory": false,
-  "notes": "REOC update 1.10.2"
+  "notes": "REOC update 1.10.3"
 }
