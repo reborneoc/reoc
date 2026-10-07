@@ -1,0 +1,61 @@
+name: Build REOC ReShade Silent
+
+'on':
+  push:
+    branches:
+      - build/reshade-680-reoc-silent
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout ReShade 6.8.0
+        uses: actions/checkout@v4
+        with:
+          repository: crosire/reshade
+          ref: v6.8.0
+          fetch-depth: 0
+          submodules: recursive
+          path: reshade
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Disable all ReShade GUI rendering
+        shell: pwsh
+        run: |
+          $path = 'reshade/source/runtime_gui.cpp'
+          $text = Get-Content -LiteralPath $path -Raw
+          $needle = 'void reshade::runtime::draw_gui()'
+          $pos = $text.IndexOf($needle)
+          if ($pos -lt 0) { throw 'draw_gui not found' }
+          $brace = $text.IndexOf('{',$pos)
+          if ($brace -lt 0) { throw 'draw_gui brace not found' }
+          $insert = "`r`n`treturn; // REOC silent runtime: no splash, no overlay"
+          $text = $text.Insert($brace + 1,$insert)
+          Set-Content -LiteralPath $path -Value $text -Encoding UTF8
+
+      - name: Build x86 Release
+        shell: pwsh
+        working-directory: reshade
+        run: msbuild ReShade.sln /p:Configuration=Release /p:Platform=32-bit /m
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifact | Out-Null
+          Copy-Item -LiteralPath 'reshade/bin/Win32/Release/ReShade32.dll' -Destination 'artifact/dxgi.dll' -Force
+          Copy-Item -LiteralPath 'reshade/LICENSE.md' -Destination 'artifact/ReShade_LICENSE.md' -Force
+          'REOC custom ReShade 6.8.0 x86 runtime - GUI rendering disabled' | Set-Content -LiteralPath 'artifact/README_REOC.txt' -Encoding UTF8
+          Get-FileHash 'artifact/dxgi.dll' -Algorithm SHA256 | Format-List | Out-File 'artifact/SHA256.txt'
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: REOC-ReShade-6.8.0-x86-Silent
+          path: artifact/
+          if-no-files-found: error
+          retention-days: 3
