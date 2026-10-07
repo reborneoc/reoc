@@ -1,0 +1,55 @@
+name: Build REOC ReShade NoGUI
+
+'on':
+  push:
+    branches:
+      - build/reshade-680-reoc-msbuild
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout ReShade 6.8.0
+        uses: actions/checkout@v4
+        with:
+          repository: crosire/reshade
+          ref: v6.8.0
+          fetch-depth: 0
+          submodules: recursive
+          path: reshade
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Disable GUI at compile time
+        shell: pwsh
+        run: |
+          $path = 'reshade/ReShade.vcxproj'
+          $text = Get-Content -LiteralPath $path -Raw
+          $text2 = $text.Replace('RESHADE_GUI;','')
+          if ($text2 -eq $text) { throw 'RESHADE_GUI define not found' }
+          Set-Content -LiteralPath $path -Value $text2 -Encoding UTF8
+
+      - name: Build x86 Release
+        shell: pwsh
+        working-directory: reshade
+        run: msbuild ReShade.sln /p:Configuration=Release /p:Platform=32-bit /m
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifact | Out-Null
+          Copy-Item -LiteralPath 'reshade/bin/Win32/Release/ReShade32.dll' -Destination 'artifact/dxgi.dll' -Force
+          Copy-Item -LiteralPath 'reshade/LICENSE.md' -Destination 'artifact/ReShade_LICENSE.md' -Force
+          Get-FileHash 'artifact/dxgi.dll' -Algorithm SHA256 | Format-List | Out-File 'artifact/SHA256.txt'
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: REOC-ReShade-6.8.0-x86-NoGUI
+          path: artifact/
+          if-no-files-found: error
+          retention-days: 3
