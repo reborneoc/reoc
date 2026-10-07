@@ -1,0 +1,84 @@
+name: Build REOC ReShade 6.8.0 NoGUI
+
+on:
+  push:
+    branches:
+      - build/reshade-680-reoc-nogui
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout ReShade 6.8.0
+        uses: actions/checkout@v4
+        with:
+          repository: crosire/reshade
+          ref: v6.8.0
+          submodules: recursive
+          path: reshade
+
+      - name: Disable ReShade GUI and startup splash
+        shell: pwsh
+        run: |
+          $path = "reshade/CMakeLists.txt"
+          $text = Get-Content -LiteralPath $path -Raw
+          $old = @"
+target_compile_definitions(
+  ReShade
+  PRIVATE
+    RESHADE_GUI
+    RESHADE_API_LIBRARY_EXPORT
+"@
+          $new = @"
+target_compile_definitions(
+  ReShade
+  PRIVATE
+    RESHADE_API_LIBRARY_EXPORT
+"@
+          if (-not $text.Contains($old)) {
+            throw "Expected RESHADE_GUI block not found in ReShade 6.8.0 CMakeLists.txt"
+          }
+          $text = $text.Replace($old, $new)
+          Set-Content -LiteralPath $path -Value $text -Encoding UTF8
+
+      - name: Configure x86 Release
+        shell: pwsh
+        run: |
+          cmake -S reshade -B build -G "Visual Studio 17 2022" -A Win32
+
+      - name: Build ReShade x86
+        shell: pwsh
+        run: |
+          cmake --build build --config Release --target ReShade -- /m
+
+      - name: Prepare artifact
+        shell: pwsh
+        run: |
+          $dll = Get-ChildItem -Path build -Filter "ReShade32.dll" -Recurse | Select-Object -First 1
+          if ($null -eq $dll) {
+            throw "ReShade32.dll not found after build"
+          }
+          New-Item -ItemType Directory -Force -Path artifact | Out-Null
+          Copy-Item -LiteralPath $dll.FullName -Destination "artifact/dxgi.dll" -Force
+          Copy-Item -LiteralPath "reshade/LICENSE.md" -Destination "artifact/RESHade_LICENSE.md" -Force
+          @"
+REOC custom ReShade runtime
+Base: ReShade 6.8.0
+Architecture: x86
+GUI: disabled at compile time
+Purpose: REOC Enhanced Graphics
+Expected deployment name: dxgi.dll
+"@ | Set-Content -LiteralPath "artifact/README_REOC.txt" -Encoding UTF8
+          Get-FileHash "artifact/dxgi.dll" -Algorithm SHA256 | Format-List | Out-File "artifact/SHA256.txt"
+
+      - name: Upload runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: REOC-ReShade-6.8.0-x86-NoGUI
+          path: artifact/
+          if-no-files-found: error
+          retention-days: 3
