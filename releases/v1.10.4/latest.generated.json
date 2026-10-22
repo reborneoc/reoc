@@ -1,0 +1,8 @@
+{
+  "version": "1.10.4",
+  "url": "https://github.com/reborneoc/reoc/releases/download/v1.10.4/REOC_UPDATE_1.10.4.zip",
+  "sha256": "BE730CF2040A3FFD30B255D00FA39AA2F85D9BBEA9688ED932A50D03B3C129EC",
+  "size": 30351166,
+  "mandatory": false,
+  "notes": "REOC 1.10.4 - Enhanced Graphics ReShade only, updated 8 splash screens, MultiSession V2."
+}
